@@ -1,0 +1,10 @@
+@font-face {
+  font-family: '#{$prefix-font-name}';
+  src: url('./#{$prefix-filename}.eot?v=#{$prefix-version}');
+  src: url('./#{$prefix-filename}.eot?#iefix&v=#{$prefix-version}') format('embedded-opentype'),
+    url('./#{$prefix-filename}.woff2?v=#{$prefix-version}') format('woff2'),
+    url('./#{$prefix-filename}.woff?v=#{$prefix-version}') format('woff'),
+    url('./#{$prefix-filename}.ttf?v=#{$prefix-version}') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}

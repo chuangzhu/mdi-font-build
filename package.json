@@ -4,10 +4,10 @@
   "description": "Material Design Icons webfont builder.",
   "main": "index.js",
   "scripts": {
-    "build": "node bin/index.js"
+    "build": "node index.js"
   },
   "bin": {
-    "font-build": "./bin/index.js"
+    "mdi-font-build": "./index.js"
   },
   "repository": {
     "type": "git",
