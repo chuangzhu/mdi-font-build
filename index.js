@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-// const yargs = require('yargs');
 const webfont = require("webfont").default;
 const sass = require('sass');
 const fs = require('fs');
@@ -9,25 +8,24 @@ const path = require('path');
 const crypto = require('crypto')
 
 const mdiSvgPath = path.dirname(require.resolve('@mdi/svg/package.json'));
-const distFolder = './mdi';
-  const tmpdir = path.join(os.tmpdir(), 'mdi-font-build');
+const tmpdir = path.join(os.tmpdir(), 'mdi-font-build');
 
-function generateFolders() {
-  if (!fs.existsSync(distFolder)) {
-    fs.mkdirSync(distFolder, { recursive: true });
+function makeDirs(outputDir) {
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
   if (!fs.existsSync(tmpdir)) {
     fs.mkdirSync(tmpdir, { recursive: true });
   }
 }
 
-function generateSCSS(config, icons) {
-  const {
-    fileName,
-    fontName,
-    fontWeight,
-    version,
-  } = config;
+function generateSCSS({
+  fileName,
+  fontName,
+  fontWeight,
+  version,
+  iconNames
+}) {
   // {fileName}.scss
   const main = path.resolve(__dirname, 'scss', 'main.scss');
   const mainDist = path.resolve(tmpdir, `${fileName}.scss`);
@@ -55,7 +53,7 @@ function generateSCSS(config, icons) {
       .replace(/fontWeight/g, fontWeight)
       .replace(/-.-.-/g, version);
     if (file === 'variables') {
-      const iconMappings = icons.map((icon, i) => (
+      const iconMappings = iconNames.map((icon, i) => (
         `  "${icon}": F${(i + '').padStart(4, '0')}`
       ))
       otherString = otherString.replace(/icons: \(\)/, `icons: (\n${iconMappings.join(',\n')}\n)`);
@@ -64,40 +62,48 @@ function generateSCSS(config, icons) {
   });
 }
 
+function renderCSS({ fileName, outputDir }, minimized) {
+  sass.render({
+    file: path.resolve(tmpdir, `${fileName}.scss`),
+    outputStyle: minimized ? 'compressed' : 'expanded',
+    outFile: `${fileName}.css`
+  }, function (err, result) {
+    if (err) {
+      console.error(err);
+      throw (err);
+    } else {
+      fs.writeFileSync(
+        path.join(outputDir, fileName + (minimized ? '.min.css' : '.css')),
+        result.css
+      );
+    }
+  });
+}
+
 function generateCSS(config) {
-  const { fileName } = config;
-  sass.render({
-    file: path.resolve(tmpdir, `${fileName}.scss`),
-    outputStyle: 'expanded',
-    outFile: `${fileName}.css`
-  }, function (err, result) {
-    if (err) {
-      console.error(err);
-    } else {
-      fs.writeFileSync(path.join(distFolder, `${fileName}.css`), result.css);
-    }
-  });
-  sass.render({
-    file: path.resolve(tmpdir, `${fileName}.scss`),
-    outputStyle: 'compressed',
-    outFile: `${fileName}.css`
-  }, function (err, result) {
-    if (err) {
-      console.error(err);
-    } else {
-      fs.writeFileSync(path.join(distFolder, `${fileName}.min.css`), result.css);
-    }
-  });
+  renderCSS(config, false);
+  renderCSS(config, true);
 }
 
 const mapSvg = (icon) =>
   path.join(mdiSvgPath, 'svg', icon + '.svg');
 
-function genWebfont(icons) {
-  let svgs = icons.map(mapSvg);
+const mapShortName = fileName =>
+  path.parse(fileName).name
+
+function genWebfont(iconNames, extraIcons, outputDir) {
+  let svgs = iconNames.map(mapSvg);
+  if (Array.isArray(extraIcons)) {
+    svgs = svgs.concat(extraIcons);
+    extraIconNames = extraIcons.map(mapShortName);
+    iconNames = iconNames.concat(extraIconNames);
+  }
   const version = crypto.randomBytes(16).toString('hex');
 
-  webfont({
+  const config = {
+    iconNames,
+    extraIcons,
+    outputDir,
     files: svgs,
     fontName: 'Material Design Icons',
     fileName: 'materialdesignicons',
@@ -106,15 +112,18 @@ function genWebfont(icons) {
     fontHeight: 512,
     descent: 64,
     normalize: true
-  })
+  }
+  webfont(config)
     .then(result => {
-      generateFolders();
-      fs.writeFileSync(path.join(distFolder, `materialdesignicons.ttf`), result.ttf);
-      fs.writeFileSync(path.join(distFolder, `materialdesignicons.eot`), result.eot);
-      fs.writeFileSync(path.join(distFolder, `materialdesignicons.woff`), result.woff);
-      fs.writeFileSync(path.join(distFolder, `materialdesignicons.woff2`), result.woff2);
-      generateSCSS(result.config, icons);
-      generateCSS(result.config);
+      makeDirs(outputDir);
+      for (let format of ['ttf', 'eot', 'woff', 'woff2']) {
+        fs.writeFileSync(
+          path.join(outputDir, 'materialdesignicons.' + format),
+          result[format]
+        );
+      }
+      generateSCSS(config);
+      generateCSS(config);
       return result;
     })
     .catch(error => {
@@ -124,5 +133,25 @@ function genWebfont(icons) {
 }
 
 if (require.main === module) {
-  genWebfont(process.argv.slice(2))
+  const yargs = require('yargs');
+  const { hideBin } = require('yargs/helpers');
+  const argv = yargs(hideBin(process.argv))
+    // github.com/yargs/yargs/blob/v16.1.0/docs/advanced.md#default-commands
+    .command(['<icons...>', '*'], 'Names of icons to include')
+    .option('extra', {
+      alias: 'e',
+      type: 'array',
+      describe: 'Extra icons (SVG files) to include'
+    })
+    .option('output', {
+      alias: 'o',
+      type: 'string',
+      default: './mdi',
+      describe: 'Output directory'
+    })
+    .argv;
+  // console.log(argv)
+  genWebfont(argv._, argv.extra, argv.output);
 }
+
+module.exports = genWebfont;

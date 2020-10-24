@@ -1,6 +1,6 @@
 {
-  "name": "@mdi/font-build",
-  "version": "1.8.6",
+  "name": "mdi-font-build",
+  "version": "0.1.0",
   "description": "Material Design Icons webfont builder.",
   "main": "index.js",
   "scripts": {
@@ -11,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Templarian/MaterialDesign-Font-Build.git"
+    "url": "https://github.com/chuangzhu/mdi-font-build.git"
   },
-  "author": "Austin Andrews (@Templarian)",
+  "author": "chuangzhu",
   "license": "MIT",
   "dependencies": {
     "@mdi/svg": "^5.7.55",
     "sass": "^1.27.0",
     "webfont": "^9.0.0",
-    "yargs": "^13.3.0"
+    "yargs": "^16.1.0"
   }
 }
