@@ -24,5 +24,5 @@ fontBuild(iconNames, extraIcons, outputDirectory)
 ```
 
 * `iconNames: Array<string>`
-* `extraIcons: Array<string>`
+* `extraIcons: Array<string>`, shell globs are allowed.
 * `outputDirectory: string`

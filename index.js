@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const webfont = require("webfont").default;
+const webfont = require('webfont').default;
+const globby = require('globby');
 const sass = require('sass');
 const fs = require('fs');
 const os = require('os')
@@ -92,9 +93,12 @@ const mapShortName = fileName =>
   path.parse(fileName).name
 
 function genWebfont(iconNames, extraIcons, outputDir) {
+  // Allow passing strings
+  iconNames = [].concat(iconNames);
   let svgs = iconNames.map(mapSvg);
-  if (Array.isArray(extraIcons)) {
+  if (extraIcons) {
     svgs = svgs.concat(extraIcons);
+    extraIcons = globby.sync(extraIcons);
     extraIconNames = extraIcons.map(mapShortName);
     iconNames = iconNames.concat(extraIconNames);
   }
