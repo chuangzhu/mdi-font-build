@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+"use strict"
 
 const webfont = require('webfont').default;
 const globby = require('globby');
@@ -55,7 +56,8 @@ function generateSCSS({
       .replace(/-.-.-/g, version);
     if (file === 'variables') {
       const iconMappings = iconNames.map((icon, i) => (
-        `  "${icon}": F${(i + '').padStart(4, '0')}`
+        // The default start codepoint of itgalaxy/webfont is EA01
+        `  "${icon}": ${(0xEA01 + i).toString(16)}`
       ))
       otherString = otherString.replace(/icons: \(\)/, `icons: (\n${iconMappings.join(',\n')}\n)`);
     }
@@ -99,16 +101,20 @@ function genWebfont(iconNames, extraIcons, outputDir) {
   if (extraIcons) {
     svgs = svgs.concat(extraIcons);
     extraIcons = globby.sync(extraIcons);
-    extraIconNames = extraIcons.map(mapShortName);
+    if (!extraIcons.length)
+      throw new Error('No matches found for extraIcons.')
+    const extraIconNames = extraIcons.map(mapShortName);
     iconNames = iconNames.concat(extraIconNames);
   }
   const version = crypto.randomBytes(16).toString('hex');
 
   const config = {
     iconNames,
-    extraIcons,
     outputDir,
     files: svgs,
+    startUnicode: 0xEA01,  // Start codepoint
+    // github.com/itgalaxy/webfont/blob/v9.0.0/src/standalone.js#L86
+    sort: false,  // Prevent glyphsData sorting and breaking the order
     fontName: 'Material Design Icons',
     fileName: 'materialdesignicons',
     version,
